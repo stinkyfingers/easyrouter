@@ -1,13 +1,18 @@
 # easyrouter
 
-## Init an http router:
-```s := easyrouter.Server{
+## Init an http router && run it:
+```
+s := easyrouter.Server{
 	Port:   "8080",
 	Routes: routes,
-}```
+}
+
+s.Run()
+```
 
 ## Define Routes:
-```var routes = []easyrouter.Route{
+```
+var routes = []easyrouter.Route{
 	{
 		Path:        "/",
 		Handler:     handleDefault,
@@ -24,32 +29,33 @@
 		Handler: handleBar,
 		Method:  "GET",
 	},
-}```
+}
+```
 
 ## Write Middleware
 - Middleware is type func(fn http.HandlerFunc) http.HandlerFunc
 - Examples:
 
-```func myMiddleware(fn http.HandlerFunc) http.HandlerFunc {
+```
+func myMiddleware(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// pre-call middleware
 		w.Write([]byte("--pre-handler middleware--"))
 		fn(w, r)
-		// post-call middleware
 		w.Write([]byte("--post-handler middleware--"))
 
 	}
-}```
+}
+```
 
-```func myMiddleware2(fn http.HandlerFunc) http.HandlerFunc {
+```
+func myMiddleware2(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// pre-call middleware
 		w.Write([]byte("--pre-handler middleware--"))
 		fn(w, r)
-		// post-call middleware
 		w.Write([]byte("--post-handler middleware--"))
 
 	}
-}```
+}
+```
 	
 	
