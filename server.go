@@ -13,6 +13,7 @@ type Server struct {
 	Port         string
 	DefaultRoute Route
 	Routes       []Route
+	Middlewares  []Middleware
 }
 
 type Route struct {
@@ -35,7 +36,7 @@ func (s *Server) Run() {
 		s.DefaultRoute = Route{Path: "/", Handler: func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("not found")) }}
 	}
 	log.Print("Listening on port " + s.Port)
-	log.Fatal(http.ListenAndServe(":"+s.Port, s))
+	log.Fatal(http.ListenAndServe(":"+s.Port, s.UniversalMiddleware(s)))
 }
 
 func (s *Server) MakeRoutemap() {
@@ -60,6 +61,16 @@ func (s *Server) AddMiddleware(route Route) http.Handler {
 		route.Handler.ServeHTTP(w, r)
 	})
 	for _, middle := range route.Middlewares {
+		handler = middle(handler)
+	}
+	return handler
+}
+
+func (s *Server) UniversalMiddleware(next http.Handler) http.Handler {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+	for _, middle := range s.Middlewares {
 		handler = middle(handler)
 	}
 	return handler
