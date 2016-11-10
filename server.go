@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+
+	"golang.org/x/net/websocket"
 )
 
 type Server struct {
@@ -22,6 +24,7 @@ type Route struct {
 	Middlewares []Middleware
 	Method      string
 	Params      []Param
+	WSHandler   websocket.Handler
 }
 type Param struct {
 	Key   string
@@ -121,6 +124,11 @@ func (r *Route) GetParams(req *http.Request) error {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// match route || default route
 	route := s.FindRoute(r)
+
+	if route.WSHandler != nil {
+		websocket.Handler(route.WSHandler).ServeHTTP(w, r)
+		return
+	}
 
 	// Params get
 	err := route.GetParams(r)
