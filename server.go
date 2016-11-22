@@ -2,7 +2,6 @@ package easyrouter
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -33,13 +32,12 @@ type Param struct {
 
 type Middleware func(fn http.HandlerFunc) http.HandlerFunc
 
-func (s *Server) Run() {
+func (s *Server) Run() error {
 	s.MakeRoutemap()
 	if s.DefaultRoute.Handler == nil {
 		s.DefaultRoute = Route{Path: "/", Handler: func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("not found")) }}
 	}
-	log.Print("Listening on port " + s.Port)
-	log.Fatal(http.ListenAndServe(":"+s.Port, s.UniversalMiddleware(s)))
+	return http.ListenAndServe(":"+s.Port, s.UniversalMiddleware(s))
 }
 
 func (s *Server) MakeRoutemap() {
