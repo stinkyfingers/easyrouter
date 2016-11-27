@@ -6,39 +6,88 @@ import (
 	"testing"
 )
 
-func TestRoutemap(t *testing.T) {
-	var routes = []Route{
+var testRoutes = []Route{
+	{
+		Path: "/",
+	},
+	{
+		Path: "/{id}",
+	},
+	{
+		Path:   "/deck",
+		Method: "POST",
+	},
+	{
+		Path:   "/de",
+		Method: "POST",
+	},
+	{
+		Path:   "/deck/{id}",
+		Method: "GET",
+	},
+	{
+		Path:   "/deck/{id}",
+		Method: "DEL",
+	},
+	{
+		Path:   "/foo/{name}/bar/{id}",
+		Method: "GET",
+	},
+	{
+		Path:   "/foo",
+		Method: "POST",
+	},
+}
+
+func TestParams(t *testing.T) {
+	u, _ := url.Parse("http://localhost:8080/")
+	u1, _ := url.Parse("http://localhost:8080/123")
+	u2, _ := url.Parse("http://localhost:8080/deck")
+	u3, _ := url.Parse("http://localhost:8080/de")
+	u4, _ := url.Parse("http://localhost:8080/deck/456")
+	u5, _ := url.Parse("http://localhost:8080/deck/567")
+	u6, _ := url.Parse("http://localhost:8080/foo/123/bar/456")
+	u7, _ := url.Parse("http://localhost:8080/foo")
+	r := []*http.Request{
 		{
-			Path: "/",
+			URL: u,
 		},
 		{
-			Path:   "/deck",
-			Method: "POST",
+			URL: u1,
 		},
 		{
-			Path:   "/de",
-			Method: "POST",
+			URL: u2,
 		},
 		{
-			Path:   "/deck/{id}",
-			Method: "GET",
+			URL: u3,
 		},
 		{
-			Path:   "/deck/{id}",
-			Method: "DEL",
+			URL: u4,
 		},
 		{
-			Path:   "/foo/{name}/bar/{id}",
-			Method: "GET",
+			URL: u5,
 		},
 		{
-			Path:   "/foo",
-			Method: "POST",
+			URL: u6,
+		},
+		{
+			URL: u7,
 		},
 	}
 
+	// testRoutes[1].GetParams(r[1])
+	// t.Log(r[1].URL.Query(), testRoutes[1].Params)
+
+	for i, route := range testRoutes {
+		route.GetParams(r[i])
+		t.Log(route.Params)
+	}
+}
+
+func TestRoutemap(t *testing.T) {
+
 	s := Server{
-		Routes: routes,
+		Routes: testRoutes,
 	}
 	s.MakeRoutemap()
 
@@ -46,6 +95,7 @@ func TestRoutemap(t *testing.T) {
 	u2, _ := url.Parse("http://localhost:8000/deck")
 	u3, _ := url.Parse("http://localhost:8080/deck/580c0fc9dd162c0f5c443a6a")
 	u4, _ := url.Parse("http://localhost:8080/")
+	u5, _ := url.Parse("http://localhost:8080/456")
 	requests := []http.Request{
 		{
 			Method: "GET",
@@ -63,10 +113,14 @@ func TestRoutemap(t *testing.T) {
 			Method: "GET",
 			URL:    u4,
 		},
+		{
+			Method: "GET",
+			URL:    u5,
+		},
 	}
 	for _, r := range requests {
 		route := s.FindRoute(&r)
 		t.Log(route)
-	}
 
+	}
 }

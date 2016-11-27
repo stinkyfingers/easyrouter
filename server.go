@@ -123,11 +123,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// match route || default route
 	route := s.FindRoute(r)
 
-	if route.WSHandler != nil {
-		websocket.Handler(route.WSHandler).ServeHTTP(w, r)
-		return
-	}
-
 	// Params get
 	err := route.GetParams(r)
 	if err != nil {
@@ -144,6 +139,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	}
 	r.URL.RawQuery = values.Encode()
+
+	if route.WSHandler != nil {
+		websocket.Handler(route.WSHandler).ServeHTTP(w, r)
+		return
+	}
 
 	handler.ServeHTTP(w, r)
 }
