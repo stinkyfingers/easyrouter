@@ -21,7 +21,7 @@ type Route struct {
 	Path        string
 	Handler     http.HandlerFunc
 	Middlewares []Middleware
-	Method      string
+	Methods     []string
 	Params      []Param
 	WSHandler   websocket.Handler
 }
@@ -43,16 +43,18 @@ func (s *Server) Run() error {
 func (s *Server) MakeRoutemap() {
 	s.routemap = make(map[string]map[string]Route)
 	for _, route := range s.Routes {
-		if route.Method == "" {
-			route.Method = "ANY"
+		for i := range route.Methods {
+			if route.Methods[i] == "" {
+				route.Methods[i] = "ANY"
+			}
+			if s.routemap[route.Methods[i]] == nil {
+				s.routemap[route.Methods[i]] = make(map[string]Route)
+			}
+			paramRegex := regexp.MustCompile(`{.*?}`)
+			p := paramRegex.ReplaceAllString(route.Path, "[^/]*")
+			key := "^" + p + "$"
+			s.routemap[route.Methods[i]][key] = route
 		}
-		if s.routemap[route.Method] == nil {
-			s.routemap[route.Method] = make(map[string]Route)
-		}
-		paramRegex := regexp.MustCompile(`{.*?}`)
-		p := paramRegex.ReplaceAllString(route.Path, "[^/]*")
-		key := "^" + p + "$"
-		s.routemap[route.Method][key] = route
 	}
 	return
 }
@@ -122,14 +124,13 @@ func (r *Route) GetParams(req *http.Request) error {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// match route || default route
 	route := s.FindRoute(r)
-
+	handler := s.AddMiddleware(route)
 	// Params get
 	err := route.GetParams(r)
 	if err != nil {
 		route = s.DefaultRoute
 	}
 
-	handler := s.AddMiddleware(route)
 	// handler := route.Handler // ORIGINAL skips middleware
 
 	// Params set
