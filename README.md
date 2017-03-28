@@ -21,13 +21,13 @@ var routes = []easyrouter.Route{
 	{
 		Path:    "/foo",
 		Handler: handleFoo,
-		Method:  "POST",
+		Methods:  []string{"POST"},
 		Middlewares: []easyrouter.Middleware{myMiddleware},
 	},
 	{
 		Path:    "/bar/{id}",
 		Handler: handleBar,
-		Method:  "GET",
+		Methods:  []string{"GET","OPTIONS"},
 	},
 }
 ```
