@@ -43,6 +43,9 @@ func (s *Server) Run() error {
 func (s *Server) MakeRoutemap() {
 	s.routemap = make(map[string]map[string]Route)
 	for _, route := range s.Routes {
+		if len(route.Methods) == 0 {
+			route.Methods = []string{"ANY"}
+		}
 		for i := range route.Methods {
 			if route.Methods[i] == "" {
 				route.Methods[i] = "ANY"
