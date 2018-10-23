@@ -6,11 +6,13 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/stinkyfingers/prefixtree"
 	"golang.org/x/net/websocket"
 )
 
 type Server struct {
-	routemap     map[string]map[string]Route
+	// routemap     map[string]map[string]Route
+	tree         map[string]*prefixtree.Node
 	Port         string
 	DefaultRoute Route
 	Routes       []Route
@@ -41,25 +43,36 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) MakeRoutemap() {
-	s.routemap = make(map[string]map[string]Route)
-	for _, route := range s.Routes {
+
+	s.tree = make(map[string]*prefixtree.Node)
+	for i, route := range s.Routes {
 		if len(route.Methods) == 0 {
-			route.Methods = []string{"ANY"}
+			route.Methods = []string{"GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"}
 		}
-		for i := range route.Methods {
-			if route.Methods[i] == "" {
-				route.Methods[i] = "ANY"
+		for _, method := range route.Methods {
+			if _, ok := s.tree[method]; !ok {
+				s.tree[method] = prefixtree.NewTree()
 			}
-			if s.routemap[route.Methods[i]] == nil {
-				s.routemap[route.Methods[i]] = make(map[string]Route)
-			}
-			paramRegex := regexp.MustCompile(`{.*?}`)
-			p := paramRegex.ReplaceAllString(route.Path, "[^/]*")
-			key := "^" + p + "$"
-			s.routemap[route.Methods[i]][key] = route
+			cleanedPath := getPathAsWildcard(route.Path)
+			s.tree[method].Insert(cleanedPath, i)
 		}
 	}
-	return
+}
+
+func getPathAsWildcard(path string) string {
+	arr := strings.Split(path, "/")
+	var builder strings.Builder
+	for _, s := range arr {
+		if s == "" {
+			continue
+		}
+		if strings.HasPrefix(s, "{") && strings.HasSuffix(s, "}") {
+			builder.WriteString("/*")
+			continue
+		}
+		builder.WriteString("/" + s)
+	}
+	return builder.String()
 }
 
 func (s *Server) AddMiddleware(route Route) http.Handler {
@@ -83,24 +96,18 @@ func (s *Server) UniversalMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *Server) FindRoute(r *http.Request) Route {
-	if methodMap, ok := s.routemap[r.Method]; ok {
-		for k, route := range methodMap {
-			reg := regexp.MustCompile(k)
-			if reg.MatchString(r.URL.Path) {
-				return route
-			}
+	var route Route
+	if methodMap, ok := s.tree[r.Method]; !ok {
+		return s.DefaultRoute
+	} else {
+		cleanedPath := getPathAsWildcard(r.URL.Path)
+		res, routeIndex := methodMap.Find(cleanedPath)
+		if !res {
+			return route
 		}
+		return s.Routes[routeIndex]
 	}
-
-	if anyMethodMap, ok := s.routemap["ANY"]; ok {
-		for k, route := range anyMethodMap {
-			reg := regexp.MustCompile(k)
-			if reg.MatchString(r.URL.Path) {
-				return route
-			}
-		}
-	}
-	return s.DefaultRoute
+	return route
 }
 
 func (r *Route) GetParams(req *http.Request) error {

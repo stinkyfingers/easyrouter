@@ -164,3 +164,34 @@ func TestRoutemap(t *testing.T) {
 		}
 	}
 }
+
+func TestGetPathAsWildcard(t *testing.T) {
+	tests := []struct {
+		path     string
+		expected string
+	}{
+		{
+			"/foo/{id}",
+			"/foo/*",
+		}, {
+			"/foo/{id}/bar/{attribute}",
+			"/foo/*/bar/*",
+		}, {
+			"/foo",
+			"/foo",
+		}, {
+			"",
+			"",
+		}, {
+			"/{id}",
+			"/*",
+		},
+	}
+
+	for _, test := range tests {
+		path := getPathAsWildcard(test.path)
+		if path != test.expected {
+			t.Errorf("got %s, expected %s", path, test.expected)
+		}
+	}
+}
